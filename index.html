@@ -1,0 +1,106 @@
+<!--Evan Losier (30022571)-->
+<!DOCTYPE html>
+<html>
+<head>
+<title>Socket.IO Chat</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+.everything{ display: flex; background: #2B4C6B; max-width: 960px; height: 98vh; margin: auto; align-content: stretch; flex-wrap: wrap; }
+.chats{ background: #A7CBEE; width: calc(100% - 170px); height: calc(100% - 60px); overflow: scroll; }
+.users{ background: #4982B8; width: 160px; height: calc(100% - 60px); padding-left: 10px; }
+.type{ width: calc(99%); height: 50px; align-self: end; }
+.bold { font-weight: bold; }
+form { max-width: 960px; height: 50px; }
+form input { width: calc(100% - 178px); height: 35px; margin: 5px; }
+form button { width: 150px; background: #4B5C6B; height: 40px; margin: 5px;}
+#messages { list-style-type: none; margin: 0; padding: 0; }
+#messages li { padding: 5px 10px; }
+#messages li:nth-child(odd) { background: #5DA7EB; }
+#onlineUsers { list-style-type: none; margin: 0; padding-left: 0px; }
+#onlineUsers li { padding-bottom: 4px; }
+
+</style>
+
+</head>
+<body>
+
+
+<section class="everything">
+
+<div class="chats">
+	<ul id="messages"></ul>
+</div>
+
+<div class="users">
+	<h4>Online Users</h4>
+	<ul id="onlineUsers"></ul>
+</div>
+
+<div class="type">
+	<form action="">
+		<input id="m" autocomplete="off" /><button>Send</button>
+	</form>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script charset="utf-8">
+
+	$(function () {
+		var socket = io();
+		if(localStorage.getItem('username') != null) {
+			socket.emit('chat message', '/name ' + localStorage.getItem('username'));
+		}
+		if(localStorage.getItem('colour') != null) {
+			socket.emit('chat message', '/colour ' + localStorage.getItem('colour').substring(1));
+		}
+		$('form').submit(function(e) {
+			e.preventDefault();
+			socket.emit('chat message', $('#m').val());
+			$('#m').val('');
+			return false;
+		});
+
+		socket.on('user update', function(users){
+			$('#onlineUsers').empty();
+			let i = 0;
+			for(i; i < users.length; i++) {
+				if(socket.id === users[i].id) {
+					$('#onlineUsers').append($('<li class="bold">').text(users[i].name + ' (YOU)'));
+					localStorage.setItem('username', users[i].name);
+					localStorage.setItem('colour', users[i].colour);
+				} else {
+					$('#onlineUsers').append($('<li>').text(users[i].name));
+				}
+				document.querySelector('#onlineUsers li:last-child').style.color = users[i].colour;
+			}
+		});
+		
+		socket.on('message update', function(allMsg){
+			$('#messages').empty();
+			let i = 0;
+			for(i; i < allMsg.length; i++) {
+				let message = allMsg[i].time + allMsg[i].user.name + ': ' + allMsg[i].msg;
+				if(allMsg[i].msg === "") {
+					message = "";
+				}
+				if(allMsg[i].user.name === localStorage.getItem('username') || allMsg[i].user.id === socket.id) {
+					$('#messages').append($('<li class="bold">').text(message));
+				} else {
+					$('#messages').append($('<li>').text(message));
+				}
+				document.querySelector('#messages li:last-child').style.color = allMsg[i].user.colour;
+			}
+			$('.chats').scrollTop(10000);
+		});
+	});
+	
+</script>
+
+
+</section>
+
+</body>
+</html>
